@@ -8,6 +8,7 @@ import {
 import SubjectCard from "./components/SubjectCard";
 import { toTitleCase } from "./utils/titlecase";
 import collegeLogo from "./assets/clg_logo.svg";
+import { Analytics } from "@vercel/analytics/react";
 
 export default function App() {
   const flatData = useMemo(() => getFlattenedData(), []);
@@ -260,6 +261,7 @@ export default function App() {
           </div>
         </div>
       )}
+      <Analytics />
     </div>
   );
 }
