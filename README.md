@@ -3,7 +3,7 @@
 A static site SGPA calculator designed for the students of Vasavi College of Engineering.
 
 ## Live Demo
-*[link]*
+https://sgpa.vce14.me/
 
 ## Key Features
 
