@@ -119,21 +119,50 @@ export default function App() {
     <div
       style={{ maxWidth: "600px", margin: "0 auto", paddingBottom: "140px" }}
     >
-      {/*iOS Header Layout */}
-      <header className="ios-header">
-        <img src={collegeLogo} alt="College Logo" className="ios-header-logo" />
-        <h1 className="ios-header-title">SGPA Calculator</h1>
+      {/*Feedback Button */}
+      <button
+        className="vce-feedback-btn"
+        onClick={() =>
+          window.open(
+            "https://docs.google.com/forms/d/e/1FAIpQLSdiOepAhPuaXfN_rN70XjeJb5DFtKKvM3HDeOee7bgL7LT-tw/viewform?usp=preview",
+            "_blank",
+          )
+        }
+        title="Send Feedback"
+        aria-label="Send Feedback"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ transition: "stroke 0.2s ease" }}
+        >
+          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+        </svg>
+        <span>Feedback</span>
+      </button>
+
+      {/*Header Layout */}
+      <header className="vce-header">
+        <img src={collegeLogo} alt="College Logo" className="vce-header-logo" />
+        <h1 className="vce-header-title">SGPA Calculator</h1>
       </header>
 
-      <div className="ios-card">
+      <div className="vce-card">
         {/* Step 1: Program */}
         <div style={{ marginBottom: selectedProgram ? "16px" : "0" }}>
-          <label htmlFor="program-select" className="ios-label">
+          <label htmlFor="program-select" className="vce-label">
             1. Program
           </label>
           <select
             id="program-select"
-            className="ios-select"
+            className="vce-select"
             value={selectedProgram}
             onChange={handleProgramChange}
           >
@@ -156,12 +185,12 @@ export default function App() {
               animation: "fadeIn 0.3s ease",
             }}
           >
-            <label htmlFor="dept-select" className="ios-label">
+            <label htmlFor="dept-select" className="vce-label">
               2. Department
             </label>
             <select
               id="dept-select"
-              className="ios-select"
+              className="vce-select"
               value={selectedDept}
               onChange={handleDeptChange}
             >
@@ -180,12 +209,12 @@ export default function App() {
         {/* Step 3: Semester */}
         {selectedDept && (
           <div style={{ animation: "fadeIn 0.3s ease" }}>
-            <label htmlFor="sem-select" className="ios-label">
+            <label htmlFor="sem-select" className="vce-label">
               3. Semester
             </label>
             <select
               id="sem-select"
-              className="ios-select"
+              className="vce-select"
               value={selectedSem}
               onChange={handleSemChange}
             >
@@ -206,8 +235,10 @@ export default function App() {
       {selectedSem && currentSubjects.length > 0 && (
         <div style={{ animation: "fadeIn 0.3s ease" }}>
           {/* NEW: Instructional Note */}
-          <p className="ios-instruction-note">
-            <span className="ios-text-danger">Remove any electives</span> or subjects you aren't taking this semester using the <span className="ios-text-danger">✕</span> button.
+          <p className="vce-instruction-note">
+            <span className="vce-text-danger">Remove any electives</span> or
+            subjects you aren't taking this semester using the{" "}
+            <span className="vce-text-danger">✕</span> button.
           </p>
 
           {/* Render Active Subject Cards */}
@@ -227,20 +258,20 @@ export default function App() {
 
           {/* Render Removed Subjects Pool */}
           {removedList.length > 0 && (
-            <div className="ios-removed-section">
-              <h4 className="ios-removed-title">Removed Subjects</h4>
-              <div className="ios-removed-list">
+            <div className="vce-removed-section">
+              <h4 className="vce-removed-title">Removed Subjects</h4>
+              <div className="vce-removed-list">
                 {removedList.map((sub) => (
                   <div
                     key={`${sub.name}-${sub.code}`}
-                    className="ios-removed-item"
+                    className="vce-removed-item"
                   >
-                    <span className="ios-removed-name">
+                    <span className="vce-removed-name">
                       {toTitleCase(sub.name)}
                     </span>
                     <button
                       onClick={() => handleRestoreSubject(sub.name)}
-                      className="ios-add-btn"
+                      className="vce-add-btn"
                     >
                       + Add
                     </button>
@@ -254,13 +285,14 @@ export default function App() {
 
       {/* SGPA Sticky Footer */}
       {selectedSem && (
-        <div className="ios-sticky-footer">
-          <div className="ios-sgpa-container">
-            <span className="ios-sgpa-label">SGPA</span>
-            <span className="ios-sgpa-value">{currentSGPA}</span>
+        <div className="vce-sticky-footer">
+          <div className="vce-sgpa-container">
+            <span className="vce-sgpa-label">SGPA</span>
+            <span className="vce-sgpa-value">{currentSGPA}</span>
           </div>
         </div>
       )}
+
       <Analytics />
     </div>
   );

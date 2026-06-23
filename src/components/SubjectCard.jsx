@@ -6,18 +6,18 @@ export default function SubjectCard({ subject, grade, onGradeChange, onRemove })
   const formattedName = toTitleCase(subject.name);
 
   return (
-    <div className="ios-subject-card">
-      <div className="ios-card-header">
-        <div className="ios-subject-info">
+    <div className="vce-subject-card">
+      <div className="vce-card-header">
+        <div className="vce-subject-info">
           {/* Render the formatted name */}
-          <h3 className="ios-subject-name">{formattedName}</h3>
-          <span className="ios-subject-meta">
+          <h3 className="vce-subject-name">{formattedName}</h3>
+          <span className="vce-subject-meta">
             {subject.code} • {subject.credits} Credits
           </span>
         </div>
         <button 
           onClick={() => onRemove(subject.name)}
-          className="ios-remove-btn"
+          className="vce-remove-btn"
           aria-label="Remove subject"
         >
           <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
@@ -28,10 +28,10 @@ export default function SubjectCard({ subject, grade, onGradeChange, onRemove })
       </div>
 
       {/* Override class added to target centering */}
-      <div className="ios-slider-container card-slider-override">
-        <div className="ios-grade-labels">
+      <div className="vce-slider-container card-slider-override">
+        <div className="vce-grade-labels">
           <span>Target Grade</span>
-          <span className="ios-grade-highlight">{grade}</span>
+          <span className="vce-grade-highlight">{grade}</span>
         </div>
         
         <input 
@@ -41,13 +41,13 @@ export default function SubjectCard({ subject, grade, onGradeChange, onRemove })
           step="1"
           value={grade}
           onChange={(e) => onGradeChange(subject.name, parseInt(e.target.value))}
-          className="ios-slider"
+          className="vce-slider"
           style={{
-            background: `linear-gradient(to right, var(--ios-blue) ${fillPercentage}%, var(--ios-border) ${fillPercentage}%)`
+            background: `linear-gradient(to right, var(--vce-blue) ${fillPercentage}%, var(--vce-border) ${fillPercentage}%)`
           }}
         />
         
-        <div className="ios-slider-ticks">
+        <div className="vce-slider-ticks">
           <span>4 (Pass)</span>
           <span>10 (Max)</span>
         </div>

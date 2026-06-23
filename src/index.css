@@ -1,11 +1,11 @@
 :root {
   /* iOS Color Palette */
-  --ios-bg: #F2F2F7;         /* System Gray 6 - Main background */
-  --ios-card: #FFFFFF;       /* Pure white for containers */
-  --ios-text: #000000;       /* Primary text */
-  --ios-text-muted: #8E8E93; /* System Gray - Secondary text */
-  --ios-blue: #007AFF;       /* Active/Action color */
-  --ios-border: #E5E5EA;     /* System Gray 5 - Dividers */
+  --vce-bg: #F2F2F7;         /* System Gray 6 - Main background */
+  --vce-card: #FFFFFF;       /* Pure white for containers */
+  --vce-text: #000000;       /* Primary text */
+  --vce-text-muted: #8E8E93; /* System Gray - Secondary text */
+  --vce-blue: #007AFF;       /* Active/Action color */
+  --vce-border: #E5E5EA;     /* System Gray 5 - Dividers */
   
   /* Radii */
   --radius-card: 16px;
@@ -20,15 +20,15 @@
 }
 
 body {
-  background-color: var(--ios-bg);
-  color: var(--ios-text);
+  background-color: var(--vce-bg);
+  color: var(--vce-text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   padding: 20px 16px;
   line-height: 1.5;
 }
 
-/* --- iOS Header Optimization --- */
-.ios-header {
+/* --- Header Optimization --- */
+.vce-header {
   display: flex;
   align-items: center;
   gap: 14px;           /* Clean horizontal spacing between logo and text */
@@ -37,37 +37,83 @@ body {
   padding-left: 4px;   /* Aligns visually with the cards below */
 }
 
-.ios-header-logo {
-  width: 60px;         /* Standard iOS header action item size */
+.vce-header-logo {
+  width: 60px;         /* Standard header action item size */
   height: 60px;
   object-fit: contain; /* Prevents image distortion */
 
 }
 
-.ios-header-title {
+.vce-header-title {
   font-size: 30px;
   font-weight: 500;
-  color: var(--ios-text);
+  color: var(--vce-text);
   letter-spacing: -0.5px;
   line-height: 1.1;
   margin: 0;
   transform: translateY(2px);
 }
 
+/* --- Feedback Button (Optimized iOS Action Style) --- */
+.vce-feedback-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  padding: 0 16px;         /* Uses horizontal padding instead of a fixed circular width */
+  height: 40px;            /* Standard compact iOS action height */
+  border-radius: 20px;     /* Fully rounded pill shape */
+  background: var(--vce-card);
+  border: 1px solid var(--vce-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;                /* Perfect native spacing between icon and text */
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Smoother iOS transition curve */
+  z-index: 50;
+  
+  /* CRITICAL FIX: Explicitly handle typography */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;         /* Crisp, legible system-level text size */
+  font-weight: 500;        /* Medium weight matching iOS system actions */
+  color: var(--vce-text);
+}
+
+/* Hover State */
+.vce-feedback-btn:hover {
+  background: var(--vce-blue);
+  border-color: var(--vce-blue);
+  color: #FFFFFF;          /* Seamlessly switches text color to white on hover */
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
+}
+
+/* Force SVG to adapt perfectly on hover */
+.vce-feedback-btn:hover svg {
+  stroke: #FFFFFF;
+}
+
+/* Native Press State */
+.vce-feedback-btn:active {
+  transform: scale(0.96);  /* Snappy system press feedback */
+  opacity: 0.85;
+}
+
+
 /* iOS Style Select/Dropdown */
-.ios-select {
+.vce-select {
   width: 100%;
   padding: 12px 16px;
   
   /* CRITICAL FIX: Explicitly match card text hierarchy */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 15px;       /* Matches .ios-subject-name for visual uniformity */
+  font-size: 15px;       /* Matches .vce-subject-name for visual uniformity */
   font-weight: 500;      /* Medium weight for clean readability */
   
-  background-color: var(--ios-card);
-  border: 1px solid var(--ios-border);
+  background-color: var(--vce-card);
+  border: 1px solid var(--vce-border);
   border-radius: var(--radius-input);
-  color: var(--ios-text);
+  color: var(--vce-text);
   appearance: none; 
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
@@ -79,21 +125,21 @@ body {
 
 
 
-.ios-label {
+.vce-label {
   display: block;
   /* CRITICAL FIX: Match the size and style of metadata text */
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--ios-text-muted);
+  color: var(--vce-text-muted);
   margin-bottom: 6px;
   margin-left: 4px;
   letter-spacing: 0.5px;
 }
 
 /* Container for grouping inputs */
-.ios-card {
-  background: var(--ios-card);
+.vce-card {
+  background: var(--vce-card);
   border-radius: var(--radius-card);
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
@@ -101,9 +147,9 @@ body {
 }
 
 /* --- Instructional Note --- */
-.ios-instruction-note {
+.vce-instruction-note {
   font-size: 14px;
-  color: var(--ios-text-muted);
+  color: var(--vce-text-muted);
   text-align: center;
   margin-bottom: 16px;
   padding: 0 16px;
@@ -112,12 +158,10 @@ body {
 }
 
 /* --- Text Utilities --- */
-.ios-text-danger {
+.vce-text-danger {
   color: #FF3B30; /* Official iOS System Red */
   font-weight: 600;
 }
-
-
 
 
 @keyframes fadeIn {
@@ -127,34 +171,34 @@ body {
 
 
 /* iOS List Layout */
-.ios-list {
+.vce-list {
   display: flex;
   flex-direction: column;
 }
 
-.ios-list-item {
-  border-bottom: 1px solid var(--ios-border);
+.vce-list-item {
+  border-bottom: 1px solid var(--vce-border);
   padding: 16px 0;
 }
 
-.ios-list-item:last-child {
+.vce-list-item:last-child {
   border-bottom: none;
   padding-bottom: 0;
 }
 
 /* iOS Checkbox Row */
-.ios-checkbox-row {
+.vce-checkbox-row {
   display: flex;
   align-items: flex-start;
   gap: 12px;
   cursor: pointer;
 }
 
-.ios-checkbox {
+.vce-checkbox {
   appearance: none;
   width: 24px;
   height: 24px;
-  border: 2px solid var(--ios-border);
+  border: 2px solid var(--vce-border);
   border-radius: 50%;
   margin-top: 2px;
   position: relative;
@@ -162,12 +206,12 @@ body {
   flex-shrink: 0;
 }
 
-.ios-checkbox:checked {
-  background-color: var(--ios-blue);
-  border-color: var(--ios-blue);
+.vce-checkbox:checked {
+  background-color: var(--vce-blue);
+  border-color: var(--vce-blue);
 }
 
-.ios-checkbox:checked::after {
+.vce-checkbox:checked::after {
   content: '';
   position: absolute;
   top: 6px;
@@ -180,28 +224,28 @@ body {
   transform: rotate(-45deg);
 }
 
-.ios-subject-info {
+.vce-subject-info {
   display: flex;
   flex-direction: column;
 }
 
 /* --- Typography Updates --- */
-.ios-subject-name {
+.vce-subject-name {
   font-size: 15px; /* Reduced from 17px */
   font-weight: 600;
-  color: var(--ios-text);
+  color: var(--vce-text);
   line-height: 1.3;
   margin-bottom: 4px;
 }
 
-.ios-subject-meta {
+.vce-subject-meta {
   font-size: 14px; /* Reduced from 13px */
-  color: var(--ios-text-muted);
+  color: var(--vce-text-muted);
   display: block; /* Ensures it sits on its own line */
 }
 
 /* --- Alignment Updates --- */
-.ios-slider-container {
+.vce-slider-container {
   margin-top: 16px;
   /* Removed padding-left completely to prevent off-center push */
   animation: fadeIn 0.2s ease;
@@ -214,18 +258,19 @@ body {
   padding-right: 0 !important;
 }
 
-.ios-grade-labels {
+.vce-grade-labels {
   display: flex;
   justify-content: space-between;
+  align-items: center;      /* CRITICAL: Vertically aligns the text with the new circle */
   font-size: 15px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
-.ios-slider {
+.vce-slider {
   appearance: none;
   width: 100%; /* Forces the track to fill the container exactly */
   height: 6px;
-  background-color: var(--ios-border); 
+  background-color: var(--vce-border); 
   border-radius: 4px;
   outline: none;
   transition: background 0.1s ease;
@@ -233,7 +278,7 @@ body {
 }
 
 /* Ensure the thumb stays above the gradient */
-.ios-slider::-webkit-slider-thumb {
+.vce-slider::-webkit-slider-thumb {
   appearance: none;
   width: 28px;
   height: 28px;
@@ -246,34 +291,34 @@ body {
   z-index: 2;
 }
 
-.ios-slider-ticks {
+.vce-slider-ticks {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: var(--ios-text-muted);
+  color: var(--vce-text-muted);
   margin-top: 8px;
 }
 
 /* Isolated Subject Card */
-.ios-subject-card {
-  background: var(--ios-card);
+.vce-subject-card {
+  background: var(--vce-card);
   border-radius: var(--radius-card);
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(0,0,0,0.02);
 }
 
-.ios-card-header {
+.vce-card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 16px;
 }
 
-.ios-remove-btn {
+.vce-remove-btn {
   background: none;
   border: none;
-  color: #FF3B30; /* iOS Red */
+  color: #FF3B30; 
   cursor: pointer;
   padding: 8px;
   margin: -8px -8px 0 0;
@@ -281,37 +326,44 @@ body {
   transition: background-color 0.2s;
 }
 
-.ios-remove-btn:hover {
+.vce-remove-btn:hover {
   background-color: rgba(255, 59, 48, 0.1);
 }
 
-.ios-grade-highlight {
-  font-weight: 700;
-  color: var(--ios-blue);
-  font-size: 18px;
-  background: rgba(0, 122, 255, 0.1);
-  padding: 2px 10px;
-  border-radius: 12px;
+.vce-grade-highlight {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;              
+  height: 40px;             
+  border-radius: 50%;       
+  border: 1px solid var(--vce-blue);
+  color: var(--vce-blue);
+  font-weight: 750;
+  font-size: 20px;          
+  background: rgba(0, 122, 255, 0.04); 
+  padding: 0;             
+  margin: 0;
 }
 
 /* Removed Subjects Pool */
-.ios-removed-section {
+.vce-removed-section {
   margin-top: 32px;
   padding-top: 24px;
-  border-top: 1px solid var(--ios-border);
+  border-top: 1px solid var(--vce-border);
 }
 
-.ios-removed-title {
+.vce-removed-title {
   font-size: 15px;
   text-transform: uppercase;
-  color: var(--ios-text-muted);
+  color: var(--vce-text-muted);
   letter-spacing: 0.5px;
   margin-bottom: 12px;
 }
 
 
 /* --- Removed Subjects Optimization --- */
-.ios-removed-item {
+.vce-removed-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -322,17 +374,17 @@ body {
   gap: 16px; /* Ensures text never touches the button */
 }
 
-.ios-removed-name {
+.vce-removed-name {
   font-size: 14px;
   font-weight: 500;
-  color: var(--ios-text-muted);
+  color: var(--vce-text-muted);
   line-height: 1.3;
   flex: 1; /* Allows the text to take up remaining space */
   word-break: break-word; /* Forces long unbroken words to wrap safely */
 }
 
-.ios-add-btn {
-  background: var(--ios-blue);
+.vce-add-btn {
+  background: var(--vce-blue);
   color: white;
   border: none;
   padding: 6px 14px;
@@ -340,22 +392,22 @@ body {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  flex-shrink: 0; /* CRITICAL: Prevents the button from shrinking on mobile */
+  flex-shrink: 0; 
   transition: transform 0.1s ease;
 }
 
-.ios-add-btn:active {
-  transform: scale(0.95); /* Native iOS button press feel */
+.vce-add-btn:active {
+  transform: scale(0.95); 
 }
 
 
 /* Sticky SGPA Footer */
-.ios-sticky-footer {
+.vce-sticky-footer {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  background: rgba(242, 242, 247, 0.85); /* Matches iOS bg, slightly transparent */
+  background: rgba(242, 242, 247, 0.85); 
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 16px 20px 32px;
@@ -363,27 +415,27 @@ body {
   z-index: 100;
 }
 
-.ios-sgpa-container {
+.vce-sgpa-container {
   max-width: 600px;
   margin: 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--ios-card);
+  background: var(--vce-card);
   padding: 16px 24px;
   border-radius: 20px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
 }
 
-.ios-sgpa-label {
+.vce-sgpa-label {
   font-size: 17px;
   font-weight: 600;
 }
 
-.ios-sgpa-value {
+.vce-sgpa-value {
   font-size: 28px;
   font-weight: 700;
-  color: var(--ios-blue);
+  color: var(--vce-blue);
 }
 
 
@@ -397,60 +449,69 @@ body {
   }
 
   /* --- iOS Header Mobile Adjustment --- */
-  .ios-header {
+  .vce-header {
     margin-bottom: 16px;
     gap: 10px;
   }
 
-  .ios-header-logo {
+  .vce-header-logo {
     width: 38px;       
     height: 38px;
   }
 
-  .ios-header-title {
+  .vce-header-title {
     font-size: 26px;
     /* Adjust or reset the optical nudge for the smaller logo */
     transform: translateY(1px); 
   }
 
   /* Compact the cards */
-  .ios-card, 
-  .ios-subject-card {
+  .vce-card, 
+  .vce-subject-card {
     padding: 16px;
     border-radius: 14px;
     margin-bottom: 16px;
   }
 
   /* Adjust typography for subjects */
-  .ios-subject-name {
+  .vce-subject-name {
     font-size: 16px;
   }
   
-  .ios-subject-meta {
+  .vce-subject-meta {
     font-size: 12px;
   }
 
   /* Tweak slider thumbs */
-  .ios-slider::-webkit-slider-thumb {
+  .vce-slider::-webkit-slider-thumb {
     width: 24px;
     height: 24px;
   }
 
   /* Compact the sticky footer */
-  .ios-sticky-footer {
+  .vce-sticky-footer {
     padding: 12px 12px 24px 12px; 
   }
 
-  .ios-sgpa-container {
+  .vce-sgpa-container {
     padding: 12px 16px;
     border-radius: 16px;
   }
 
-  .ios-sgpa-label {
+  .vce-sgpa-label {
     font-size: 15px;
   }
 
-  .ios-sgpa-value {
+  .vce-sgpa-value {
     font-size: 24px;
+  }
+
+  /* --- Feedback Button --- */
+  .vce-feedback-btn {
+    top: 12px;
+    right: 12px;
+    height: 36px;          /* Slightly more compact on mobile layout */
+    padding: 0 12px;
+    font-size: 13px;       /* Drops down perfectly to match mobile system text */
   }
 }
