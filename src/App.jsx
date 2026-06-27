@@ -115,6 +115,35 @@ export default function App() {
   const removedList = currentSubjects.filter(
     (sub) => !activeSubjects.includes(sub.name),
   );
+
+
+  const [academicYear, setAcademicYear] = useState("");
+
+  useEffect(() => {
+    fetch("/state.json")
+      .then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.target_academic_year) {
+          // Split "2026-2027" into an array: ["2026", "2027"]
+          const parts = data.target_academic_year.split("-");
+
+          if (parts.length === 2) {
+            // Parse the first part to a number, subtract 1, and recombine
+            const startYear = parseInt(parts[0], 10) - 1;
+            const endYear = parseInt(parts[1], 10) - 1;
+
+            setAcademicYear(`${startYear}-${endYear}`);
+          } else {
+            // Fallback just in case the format isn't strictly "YYYY-YYYY"
+            setAcademicYear(data.target_academic_year);
+          }
+        }
+      })
+      .catch((err) => console.error("Failed to load state.json:", err));
+  }, []);
   return (
     <div
       style={{ maxWidth: "600px", margin: "0 auto", paddingBottom: "140px" }}
@@ -151,7 +180,20 @@ export default function App() {
       {/*Header Layout */}
       <header className="vce-header">
         <img src={collegeLogo} alt="College Logo" className="vce-header-logo" />
-        <h1 className="vce-header-title">SGPA Calculator</h1>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <h1 className="vce-header-title">SGPA Calculator</h1>
+          {academicYear && (
+            <span style={{ 
+              fontSize: "14px", 
+              color: "var(--vce-text-muted)", 
+              fontWeight: "500", 
+              marginTop: "4px",
+              letterSpacing: "0.2px"
+            }}>
+              {academicYear}
+            </span>
+          )}
+        </div>
       </header>
 
       <div className="vce-card">

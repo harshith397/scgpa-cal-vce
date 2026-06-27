@@ -508,10 +508,16 @@ body {
 
   /* --- Feedback Button --- */
   .vce-feedback-btn {
-    top: 12px;
-    right: 12px;
-    height: 36px;          /* Slightly more compact on mobile layout */
-    padding: 0 12px;
-    font-size: 13px;       /* Drops down perfectly to match mobile system text */
+    top: max(16px, env(safe-area-inset-top));
+    right: max(16px, env(safe-area-inset-right));
+    width: 42px;       
+    height: 42px;      
+    padding: 0;        
+    border-radius: 50%; 
+    justify-content: center;
+  }
+
+  .vce-feedback-btn span {
+    display: none; 
   }
 }
