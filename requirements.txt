@@ -1,0 +1,5 @@
+requests
+PyMuPDF
+beautifulsoup4
+python-dotenv
+groq
