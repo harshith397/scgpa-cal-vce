@@ -85,7 +85,7 @@ def push_to_github():
     
     # 2. Stage files
     sate_file_path = (Path("public") / "data.json").as_posix()
-    syllabus_file_path = (Path("src") / "deep" / "inside" / "production.json").as_posix()
+    syllabus_file_path = (Path("src") / "data" / "syllabus.json").as_posix()
     
     if not run_git_command(['git', 'add', sate_file_path, syllabus_file_path]): return False
     
