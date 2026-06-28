@@ -42,7 +42,7 @@ def run_initial_state_check():
         send_discord_alert(f"🚨**[CHECKER ERROR]** Invalid target format: {target_academic_year}. Expected YYYY-YYYY.")
         return False
 
-    current_system_year = datetime.now().year
+    current_system_year = 2025 #datetime.now().year
 
     print(f"[INFO] Target Engine Year: {target_start_year} | System Year: {current_system_year}")
 
