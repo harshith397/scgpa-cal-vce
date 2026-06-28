@@ -84,7 +84,7 @@ def push_to_github():
     if not run_git_command(['git', 'config', '--global', 'user.email', 'github-actions[bot]@users.noreply.github.com']): return False
     
     # 2. Stage files
-    sate_file_path = (Path("public") / "data.json").as_posix()
+    sate_file_path = (Path("public") / "state.json").as_posix()
     syllabus_file_path = (Path("src") / "data" / "syllabus.json").as_posix()
     
     if not run_git_command(['git', 'add', sate_file_path, syllabus_file_path]): return False
