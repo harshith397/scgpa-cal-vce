@@ -1,8 +1,21 @@
 import { toTitleCase } from "../utils/titlecase";
 
+const gradeLabelMap = {
+  10: "A+",
+  9: "A",
+  8: "B+",
+  7: "B",
+  6: "C",
+  5: "D",
+};
+
+function getGradeLabel(grade) {
+  return gradeLabelMap[grade] || grade;
+}
+
 export default function SubjectCard({ subject, grade, onGradeChange, onRemove }) {
   
-  const fillPercentage = ((grade - 4) / (10 - 4)) * 100;
+  const fillPercentage = ((grade - 5) / (10 - 5)) * 100;
   const formattedName = toTitleCase(subject.name);
 
   return (
@@ -31,12 +44,12 @@ export default function SubjectCard({ subject, grade, onGradeChange, onRemove })
       <div className="vce-slider-container card-slider-override">
         <div className="vce-grade-labels">
           <span>Target Grade</span>
-          <span className="vce-grade-highlight">{grade}</span>
+          <span className="vce-grade-highlight">{getGradeLabel(grade)}</span>
         </div>
         
         <input 
           type="range" 
-          min="4" 
+          min="5" 
           max="10" 
           step="1"
           value={grade}
@@ -48,7 +61,7 @@ export default function SubjectCard({ subject, grade, onGradeChange, onRemove })
         />
         
         <div className="vce-slider-ticks">
-          <span>4 (Pass)</span>
+          <span>5 (Pass)</span>
           <span>10 (Max)</span>
         </div>
       </div>
