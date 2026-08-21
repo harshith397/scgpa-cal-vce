@@ -1,12 +1,14 @@
 :root {
   /* iOS Color Palette */
-  --vce-bg: #F2F2F7;         /* System Gray 6 - Main background */
-  --vce-card: #FFFFFF;       /* Pure white for containers */
-  --vce-text: #000000;       /* Primary text */
-  --vce-text-muted: #8E8E93; /* System Gray - Secondary text */
-  --vce-blue: #007AFF;       /* Active/Action color */
-  --vce-border: #E5E5EA;     /* System Gray 5 - Dividers */
-  
+  --vce-bg: #f2f2f7; /* System Gray 6 - Main background */
+  --vce-card: #ffffff; /* Pure white for containers */
+  --vce-text: #000000; /* Primary text */
+  --vce-text-muted: #8e8e93; /* System Gray - Secondary text */
+  --vce-blue: #007aff; /* Active/Action color */
+  --vce-border: #e5e5ea; /* System Gray 5 - Dividers */
+  --vce-accent-subtle: #f0f7ff;
+  --vce-hover: #f5f5f7;
+
   /* Radii */
   --radius-card: 16px;
   --radius-input: 10px;
@@ -22,7 +24,9 @@
 body {
   background-color: var(--vce-bg);
   color: var(--vce-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
   padding: 20px 16px;
   line-height: 1.5;
 }
@@ -31,17 +35,16 @@ body {
 .vce-header {
   display: flex;
   align-items: center;
-  gap: 14px;           /* Clean horizontal spacing between logo and text */
+  gap: 14px; /* Clean horizontal spacing between logo and text */
   margin-top: 8px;
   margin-bottom: 24px;
-  padding-left: 4px;   /* Aligns visually with the cards below */
+  padding-left: 4px; /* Aligns visually with the cards below */
 }
 
 .vce-header-logo {
-  width: 60px;         /* Standard header action item size */
+  width: 60px; /* Standard header action item size */
   height: 60px;
   object-fit: contain; /* Prevents image distortion */
-
 }
 
 .vce-header-title {
@@ -59,9 +62,9 @@ body {
   position: fixed;
   top: 16px;
   right: 16px;
-  padding: 0 16px;         /* Uses horizontal padding instead of a fixed circular width */
-  height: 40px;            /* Standard compact iOS action height */
-  border-radius: 20px;     /* Fully rounded pill shape */
+  padding: 0 16px; /* Uses horizontal padding instead of a fixed circular width */
+  height: 40px; /* Standard compact iOS action height */
+  border-radius: 20px; /* Fully rounded pill shape */
   background: var(--vce-card);
   border: 1px solid var(--vce-border);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -69,14 +72,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;                /* Perfect native spacing between icon and text */
+  gap: 6px; /* Perfect native spacing between icon and text */
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); /* Smoother iOS transition curve */
   z-index: 50;
-  
+
   /* CRITICAL FIX: Explicitly handle typography */
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 14px;         /* Crisp, legible system-level text size */
-  font-weight: 500;        /* Medium weight matching iOS system actions */
+  font-size: 14px; /* Crisp, legible system-level text size */
+  font-weight: 500; /* Medium weight matching iOS system actions */
   color: var(--vce-text);
 }
 
@@ -84,46 +87,46 @@ body {
 .vce-feedback-btn:hover {
   background: var(--vce-blue);
   border-color: var(--vce-blue);
-  color: #FFFFFF;          /* Seamlessly switches text color to white on hover */
+  color: #ffffff; /* Seamlessly switches text color to white on hover */
   box-shadow: 0 4px 12px rgba(0, 122, 255, 0.25);
 }
 
 /* Force SVG to adapt perfectly on hover */
 .vce-feedback-btn:hover svg {
-  stroke: #FFFFFF;
+  stroke: #ffffff;
 }
 
 /* Native Press State */
 .vce-feedback-btn:active {
-  transform: scale(0.96);  /* Snappy system press feedback */
+  transform: scale(0.96); /* Snappy system press feedback */
   opacity: 0.85;
 }
-
 
 /* iOS Style Select/Dropdown */
 .vce-select {
   width: 100%;
   padding: 12px 16px;
-  
+
   /* CRITICAL FIX: Explicitly match card text hierarchy */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 15px;       /* Matches .vce-subject-name for visual uniformity */
-  font-weight: 500;      /* Medium weight for clean readability */
-  
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px; /* Matches .vce-subject-name for visual uniformity */
+  font-weight: 500; /* Medium weight for clean readability */
+
   background-color: var(--vce-card);
   border: 1px solid var(--vce-border);
   border-radius: var(--radius-input);
   color: var(--vce-text);
-  appearance: none; 
+  appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 16px;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
-
-
 
 .vce-label {
   display: block;
@@ -159,16 +162,20 @@ body {
 
 /* --- Text Utilities --- */
 .vce-text-danger {
-  color: #FF3B30; /* Official iOS System Red */
+  color: #ff3b30; /* Official iOS System Red */
   font-weight: 600;
 }
 
-
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-
 
 /* iOS List Layout */
 .vce-list {
@@ -212,7 +219,7 @@ body {
 }
 
 .vce-checkbox:checked::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 6px;
   left: 6px;
@@ -254,14 +261,14 @@ body {
 
 /* Specific targeting for the slider inside the new card */
 .card-slider-override {
-  padding-left: 0 !important; 
+  padding-left: 0 !important;
   padding-right: 0 !important;
 }
 
 .vce-grade-labels {
   display: flex;
   justify-content: space-between;
-  align-items: center;      /* CRITICAL: Vertically aligns the text with the new circle */
+  align-items: center; /* CRITICAL: Vertically aligns the text with the new circle */
   font-size: 15px;
   margin-bottom: 12px;
 }
@@ -270,7 +277,7 @@ body {
   appearance: none;
   width: 100%; /* Forces the track to fill the container exactly */
   height: 6px;
-  background-color: var(--vce-border); 
+  background-color: var(--vce-border);
   border-radius: 4px;
   outline: none;
   transition: background 0.1s ease;
@@ -284,10 +291,10 @@ body {
   height: 28px;
   border-radius: 50%;
   background: white;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   cursor: pointer;
-  border: 1px solid rgba(0,0,0,0.05);
-  position: relative; 
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  position: relative;
   z-index: 2;
 }
 
@@ -305,7 +312,7 @@ body {
   border-radius: var(--radius-card);
   padding: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(0,0,0,0.02);
+  border: 1px solid rgba(0, 0, 0, 0.02);
 }
 
 .vce-card-header {
@@ -318,7 +325,7 @@ body {
 .vce-remove-btn {
   background: none;
   border: none;
-  color: #FF3B30; 
+  color: #ff3b30;
   cursor: pointer;
   padding: 8px;
   margin: -8px -8px 0 0;
@@ -334,15 +341,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 45px;              
-  height: 45px;             
-  border-radius: 50%;       
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
   border: 1px solid var(--vce-blue);
   color: var(--vce-blue);
   font-weight: 750;
-  font-size: 20px;          
-  background: rgba(0, 122, 255, 0.04); 
-  padding: 0;             
+  font-size: 20px;
+  background: rgba(0, 122, 255, 0.04);
+  padding: 0;
   margin: 0;
 }
 
@@ -361,18 +368,23 @@ body {
   margin-bottom: 12px;
 }
 
-
 /* --- Removed Subjects Optimization --- */
 .vce-removed-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: rgba(0,0,0,0.03);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 12px;
   margin-bottom: 8px;
   gap: 16px; /* Ensures text never touches the button */
 }
+
+
+.vce-dropdown-option {
+  font-size: 14px;
+}
+
 
 .vce-removed-name {
   font-size: 14px;
@@ -392,14 +404,13 @@ body {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  flex-shrink: 0; 
+  flex-shrink: 0;
   transition: transform 0.1s ease;
 }
 
 .vce-add-btn:active {
-  transform: scale(0.95); 
+  transform: scale(0.95);
 }
-
 
 /* Sticky SGPA Footer */
 .vce-sticky-footer {
@@ -407,11 +418,11 @@ body {
   bottom: 0;
   left: 0;
   width: 100%;
-  background: rgba(242, 242, 247, 0.85); 
+  background: rgba(242, 242, 247, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   padding: 16px 20px 32px;
-  border-top: 1px solid rgba(0,0,0,0.1);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
   z-index: 100;
 }
 
@@ -424,7 +435,7 @@ body {
   background: var(--vce-card);
   padding: 16px 24px;
   border-radius: 20px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .vce-sgpa-label {
@@ -438,14 +449,13 @@ body {
   color: var(--vce-blue);
 }
 
-
 /* =========================================
    Mobile Responsiveness (Max Width: 600px)
    ========================================= */
 @media screen and (max-width: 600px) {
   /* Reclaim horizontal space */
   body {
-    padding: 12px 8px; 
+    padding: 12px 8px;
   }
 
   /* --- iOS Header Mobile Adjustment --- */
@@ -455,18 +465,18 @@ body {
   }
 
   .vce-header-logo {
-    width: 38px;       
+    width: 38px;
     height: 38px;
   }
 
   .vce-header-title {
     font-size: 26px;
     /* Adjust or reset the optical nudge for the smaller logo */
-    transform: translateY(1px); 
+    transform: translateY(1px);
   }
 
   /* Compact the cards */
-  .vce-card, 
+  .vce-card,
   .vce-subject-card {
     padding: 16px;
     border-radius: 14px;
@@ -477,7 +487,10 @@ body {
   .vce-subject-name {
     font-size: 16px;
   }
-  
+
+  .vce-dropdown-option {
+    font-size: 14px;
+  }
   .vce-subject-meta {
     font-size: 12px;
   }
@@ -490,7 +503,7 @@ body {
 
   /* Compact the sticky footer */
   .vce-sticky-footer {
-    padding: 12px 12px 24px 12px; 
+    padding: 12px 12px 24px 12px;
   }
 
   .vce-sgpa-container {
@@ -498,6 +511,10 @@ body {
     border-radius: 16px;
   }
 
+  .vce-select {
+    font-size: 15px;
+    padding: 12px 12px;
+  }
   .vce-sgpa-label {
     font-size: 15px;
   }
@@ -510,14 +527,14 @@ body {
   .vce-feedback-btn {
     top: max(16px, env(safe-area-inset-top));
     right: max(16px, env(safe-area-inset-right));
-    width: 42px;       
-    height: 42px;      
-    padding: 0;        
-    border-radius: 50%; 
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 50%;
     justify-content: center;
   }
 
   .vce-feedback-btn span {
-    display: none; 
+    display: none;
   }
 }

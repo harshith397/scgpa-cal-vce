@@ -9,6 +9,7 @@ import SubjectCard from "./components/SubjectCard";
 import { toTitleCase } from "./utils/titlecase";
 import collegeLogo from "./assets/clg_logo.svg";
 import { Analytics } from "@vercel/analytics/react";
+import SmartSelect from "./components/SmartSelect";
 
 export default function App() {
   const flatData = useMemo(() => getFlattenedData(), []);
@@ -79,18 +80,19 @@ export default function App() {
   }, [activeSubjects, grades, currentSubjects]);
 
   // Handlers
-  const handleProgramChange = (e) => {
-    setSelectedProgram(e.target.value);
+  const handleProgramChange = (value) => {
+    setSelectedProgram(value);
     setSelectedDept("");
     setSelectedSem("");
   };
-  const handleDeptChange = (e) => {
-    setSelectedDept(e.target.value);
+
+  const handleDeptChange = (value) => {
+    setSelectedDept(value);
     setSelectedSem("");
   };
 
-  const handleSemChange = (e) => {
-    setSelectedSem(e.target.value);
+  const handleSemChange = (value) => {
+    setSelectedSem(value);
   };
 
   const handleRemoveSubject = (subjectName) => {
@@ -115,7 +117,6 @@ export default function App() {
   const removedList = currentSubjects.filter(
     (sub) => !activeSubjects.includes(sub.name),
   );
-
 
   const [academicYear, setAcademicYear] = useState("");
 
@@ -183,13 +184,15 @@ export default function App() {
         <div style={{ display: "flex", flexDirection: "column" }}>
           <h1 className="vce-header-title">SGPA Calculator</h1>
           {academicYear && (
-            <span style={{ 
-              fontSize: "14px", 
-              color: "var(--vce-text-muted)", 
-              fontWeight: "500", 
-              marginTop: "4px",
-              letterSpacing: "0.2px"
-            }}>
+            <span
+              style={{
+                fontSize: "14px",
+                color: "var(--vce-text-muted)",
+                fontWeight: "500",
+                marginTop: "4px",
+                letterSpacing: "0.2px",
+              }}
+            >
               {academicYear}
             </span>
           )}
@@ -202,21 +205,13 @@ export default function App() {
           <label htmlFor="program-select" className="vce-label">
             1. Program
           </label>
-          <select
+          <SmartSelect
             id="program-select"
-            className="vce-select"
             value={selectedProgram}
             onChange={handleProgramChange}
-          >
-            <option value="" disabled>
-              Select program...
-            </option>
-            {availablePrograms.map((prog) => (
-              <option key={prog} value={prog}>
-                {prog}
-              </option>
-            ))}
-          </select>
+            placeholder="Select program..."
+            options={availablePrograms.map((p) => ({ label: p, value: p }))}
+          />
         </div>
 
         {/* Step 2: Department */}
@@ -230,21 +225,13 @@ export default function App() {
             <label htmlFor="dept-select" className="vce-label">
               2. Department
             </label>
-            <select
+            <SmartSelect
               id="dept-select"
-              className="vce-select"
               value={selectedDept}
               onChange={handleDeptChange}
-            >
-              <option value="" disabled>
-                Select department...
-              </option>
-              {availableDepts.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept}
-                </option>
-              ))}
-            </select>
+              placeholder="Select department..."
+              options={availableDepts.map((d) => ({ label: d, value: d }))}
+            />
           </div>
         )}
 
@@ -254,21 +241,16 @@ export default function App() {
             <label htmlFor="sem-select" className="vce-label">
               3. Semester
             </label>
-            <select
+            <SmartSelect
               id="sem-select"
-              className="vce-select"
               value={selectedSem}
               onChange={handleSemChange}
-            >
-              <option value="" disabled>
-                Select semester...
-              </option>
-              {availableSems.map((sem) => (
-                <option key={sem} value={sem}>
-                  Semester {sem}
-                </option>
-              ))}
-            </select>
+              placeholder="Select semester..."
+              options={availableSems.map((s) => ({
+                label: `Semester ${s}`,
+                value: s,
+              }))}
+            />
           </div>
         )}
       </div>
