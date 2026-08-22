@@ -117,26 +117,29 @@ Return ONLY valid JSON matching this exact schema. No markdown formatting blocks
             try:
                 base64_image = encode_image(image_path)
                 
-                response = client.chat.completions.create(
-                    model="meta-llama/llama-4-scout-17b-16e-instruct",
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": system_prompt},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/png;base64,{base64_image}"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    temperature=0.0, # Lock to deterministic logic
-                    response_format={"type": "json_object"}, 
-                    max_completion_tokens=3048
-                )
+               # AFTER
+response = client.chat.completions.create(
+    model="qwen/qwen3.6-27b",
+    messages=[
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": system_prompt},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{base64_image}"
+                    }
+                }
+            ]
+        }
+    ],
+    temperature=0.0,  # keep deterministic extraction behavior
+    max_completion_tokens=3048,
+    top_p=1,
+    stream=False,
+    stop=None
+)
                 
                 raw_output = response.choices[0].message.content.strip()
                 extracted_json = json.loads(raw_output)
