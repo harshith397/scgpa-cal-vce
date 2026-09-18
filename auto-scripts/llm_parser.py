@@ -637,10 +637,9 @@ Return ONLY valid JSON matching this exact schema. No markdown formatting blocks
 
                         delay = backoff + jitter
 
-                        print(
-                            f"  -> TRANSIENT ERROR on {filename}: "
-                            f"{e}"
-                        )
+                        print(f"  -> TRANSIENT ERROR on {filename}: {type(e).__name__}: {e!r}")
+                        if e.__cause__:
+                            print(f"     caused by: {e.__cause__!r}")
 
                         print(
                             f"  -> Retrying in "
