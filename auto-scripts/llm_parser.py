@@ -30,6 +30,34 @@ def _new_http_client():
     )
 
 
+def _sanitize_api_key(raw_key, label):
+    """
+    Strip whitespace/newlines and reject control characters.
+
+    httpx/h11 refuse to send a header value containing control
+    characters (e.g. an embedded \\n) as a header-injection guard,
+    raising a generic LocalProtocolError deep inside the request —
+    it looks like a random connection failure unless you check for
+    this at load time. The most common cause is a GitHub Actions
+    secret that was set with a trailing newline (e.g. from
+    `echo $KEY` when saving it) or stray whitespace from a paste.
+    """
+    if raw_key is None:
+        return None
+
+    cleaned = raw_key.strip()
+
+    if any(ord(c) < 0x20 or ord(c) == 0x7F for c in cleaned):
+        raise ValueError(
+            f"{label} contains control characters (e.g. an embedded "
+            "newline) and can't be sent as an HTTP header. Re-set "
+            "this secret in the repo settings, making sure there's "
+            "no trailing newline or extra whitespace in the value."
+        )
+
+    return cleaned
+
+
 def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode("utf-8")
@@ -256,10 +284,21 @@ def process_vision_data(
     """
 
     # 1. API Key Rotation Setup
-    api_keys = [
-        os.getenv("GROQ_API_KEY_1"),
-        os.getenv("GROQ_API_KEY_2")
-    ]
+    try:
+        api_keys = [
+            _sanitize_api_key(os.getenv("GROQ_API_KEY_1"), "GROQ_API_KEY_1"),
+            _sanitize_api_key(os.getenv("GROQ_API_KEY_2"), "GROQ_API_KEY_2"),
+        ]
+    except ValueError as e:
+        error_msg = (
+            "### 🚨 Phase 4 ABORTED: Malformed API Key\n"
+            f"{e}"
+        )
+
+        print(error_msg)
+        send_discord_alert(error_msg)
+
+        return None
 
     api_keys = [k for k in api_keys if k]
 
