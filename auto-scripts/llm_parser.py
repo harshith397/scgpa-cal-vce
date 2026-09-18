@@ -4,11 +4,30 @@ import time
 import base64
 import random
 import sys
+import httpx
 from groq import Groq
 from alert import send_discord_alert
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def _new_http_client():
+    """
+    Fresh httpx client per Groq client instance.
+
+    - Forces IPv4 (local_address="0.0.0.0") since GitHub Actions
+      runners occasionally have broken IPv6 routing, which shows up
+      as generic "Connection error" with no useful status code.
+    - Explicit timeouts so a hung socket fails fast instead of
+      stalling the retry loop.
+    """
+    transport = httpx.HTTPTransport(local_address="0.0.0.0", retries=0)
+
+    return httpx.Client(
+        transport=transport,
+        timeout=httpx.Timeout(connect=10.0, read=60.0, write=30.0, pool=10.0),
+    )
 
 
 def encode_image(image_path):
@@ -258,7 +277,7 @@ def process_vision_data(
     current_key_index = 0
 
     clients = [
-        Groq(api_key=key,max_retries=0)
+        Groq(api_key=key, max_retries=0, http_client=_new_http_client())
         for key in api_keys
     ]
 
@@ -582,6 +601,13 @@ Return ONLY valid JSON matching this exact schema. No markdown formatting blocks
                             f"Key {current_key_index + 1}..."
                         )
 
+                        # Small pacing delay so the rotated key's
+                        # first request doesn't fire in the same
+                        # instant as the 429 — bursting two keys
+                        # back-to-back from the same IP is what was
+                        # producing the "Connection error" cascade.
+                        time.sleep(random.uniform(1.5, 2.5))
+
                         continue
 
                     # No other key is currently available.
@@ -637,9 +663,22 @@ Return ONLY valid JSON matching this exact schema. No markdown formatting blocks
 
                         delay = backoff + jitter
 
-                        print(f"  -> TRANSIENT ERROR on {filename}: {type(e).__name__}: {e!r}")
-                        if e.__cause__:
-                            print(f"     caused by: {e.__cause__!r}")
+                        # Log the real underlying exception, not
+                        # just Groq's generic "Connection error."
+                        # string, so the next failure is actually
+                        # diagnosable (DNS vs reset vs timeout).
+                        print(
+                            f"  -> TRANSIENT ERROR on {filename}: "
+                            f"{type(e).__name__}: {e!r}"
+                        )
+
+                        cause = getattr(e, "__cause__", None)
+
+                        if cause is not None:
+                            print(
+                                f"     caused by: "
+                                f"{type(cause).__name__}: {cause!r}"
+                            )
 
                         print(
                             f"  -> Retrying in "
@@ -658,6 +697,16 @@ Return ONLY valid JSON matching this exact schema. No markdown formatting blocks
                             current_key_index = (
                                 current_key_index + 1
                             ) % len(api_keys)
+
+                            # Rebuild with a fresh http client too —
+                            # if the pooled connection itself is the
+                            # broken part, reusing it just repeats
+                            # the same failure.
+                            clients[current_key_index] = Groq(
+                                api_key=api_keys[current_key_index],
+                                max_retries=0,
+                                http_client=_new_http_client(),
+                            )
 
                             client = clients[
                                 current_key_index
@@ -692,7 +741,8 @@ Return ONLY valid JSON matching this exact schema. No markdown formatting blocks
                     delay = backoff + jitter
 
                     print(
-                        f"  -> ERROR on {filename}: {e}"
+                        f"  -> ERROR on {filename}: "
+                        f"{type(e).__name__}: {e!r}"
                     )
 
                     print(
