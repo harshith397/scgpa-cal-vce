@@ -135,7 +135,7 @@ Return ONLY valid JSON matching this exact schema. No markdown formatting blocks
 
                 # AFTER
                 response = client.chat.completions.create(
-                    model="qwen/qwen3.6-27b",
+                    model="qwen/qwen3.8-27b",
                     messages=[
                         {
                             "role": "user",
