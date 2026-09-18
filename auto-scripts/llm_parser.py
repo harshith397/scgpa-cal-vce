@@ -258,7 +258,7 @@ def process_vision_data(
     current_key_index = 0
 
     clients = [
-        Groq(api_key=key)
+        Groq(api_key=key,max_retries=0)
         for key in api_keys
     ]
 
