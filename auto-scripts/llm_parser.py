@@ -2,6 +2,7 @@ import os
 import json
 import time
 import base64
+import random
 import sys
 from groq import Groq
 from alert import send_discord_alert
@@ -24,6 +25,7 @@ def validate_structure(data):
     for block in data:
         if not isinstance(block, dict):
             return False
+
         if (
             "PROGRAM" not in block
             or "DEPARTMENT" not in block
@@ -31,163 +33,455 @@ def validate_structure(data):
             or "SUBJECTS" not in block
         ):
             return False
+
         if not isinstance(block["SUBJECTS"], dict):
             return False
 
     return True
 
 
+def _get_response_headers(exception):
+    """
+    Extract HTTP response headers from Groq/OpenAI SDK exceptions.
+    Returns a normal dictionary or an empty dictionary.
+    """
+    try:
+        response = getattr(exception, "response", None)
+
+        if response is None:
+            return {}
+
+        headers = getattr(response, "headers", None)
+
+        if headers is None:
+            return {}
+
+        return {str(k).lower(): str(v) for k, v in headers.items()}
+
+    except Exception:
+        return {}
+
+
+def _parse_duration(value):
+    """
+    Parse Groq duration strings such as:
+        2
+        7.66s
+        2m59.56s
+        1h2m3.5s
+
+    Returns seconds as float.
+    """
+    if value is None:
+        return None
+
+    try:
+        value = str(value).strip()
+
+        # Plain numeric value
+        try:
+            return float(value)
+        except ValueError:
+            pass
+
+        import re
+
+        pattern = re.compile(
+            r"(?:(\d+(?:\.\d+)?)h)?"
+            r"(?:(\d+(?:\.\d+)?)m)?"
+            r"(?:(\d+(?:\.\d+)?)s)?"
+        )
+
+        match = pattern.fullmatch(value)
+
+        if not match:
+            return None
+
+        hours = float(match.group(1) or 0)
+        minutes = float(match.group(2) or 0)
+        seconds = float(match.group(3) or 0)
+
+        return hours * 3600 + minutes * 60 + seconds
+
+    except Exception:
+        return None
+
+
+def _get_retry_delay(exception):
+    """
+    Determine how long to wait after a 429.
+
+    Priority:
+    1. retry-after
+    2. x-ratelimit-reset-tokens
+    3. x-ratelimit-reset-requests
+    4. fallback
+    """
+    headers = _get_response_headers(exception)
+
+    retry_after = _parse_duration(headers.get("retry-after"))
+
+    if retry_after is not None:
+        return max(0.0, retry_after)
+
+    token_reset = _parse_duration(
+        headers.get("x-ratelimit-reset-tokens")
+    )
+
+    if token_reset is not None:
+        return max(0.0, token_reset)
+
+    request_reset = _parse_duration(
+        headers.get("x-ratelimit-reset-requests")
+    )
+
+    if request_reset is not None:
+        return max(0.0, request_reset)
+
+    return 10.0
+
+
+def _get_reset_timestamp(exception):
+    """
+    Return the earliest useful reset duration from Groq headers.
+    """
+    headers = _get_response_headers(exception)
+
+    token_reset = _parse_duration(
+        headers.get("x-ratelimit-reset-tokens")
+    )
+
+    request_reset = _parse_duration(
+        headers.get("x-ratelimit-reset-requests")
+    )
+
+    values = [
+        value
+        for value in (token_reset, request_reset)
+        if value is not None
+    ]
+
+    if not values:
+        return None
+
+    return min(values)
+
+
+def _is_rate_limit_error(exception):
+    """
+    Detect Groq HTTP 429 errors without relying only on
+    the textual exception message.
+    """
+    response = getattr(exception, "response", None)
+
+    if response is not None:
+        status_code = getattr(response, "status_code", None)
+
+        if status_code == 429:
+            return True
+
+    return "429" in str(exception)
+
+
+def _is_transient_error(exception):
+    """
+    Errors that are reasonable to retry.
+    """
+    response = getattr(exception, "response", None)
+
+    if response is not None:
+        status_code = getattr(response, "status_code", None)
+
+        if status_code is not None:
+            if status_code == 429:
+                return False
+
+            if status_code >= 500:
+                return True
+
+            if status_code in (408, 409, 425):
+                return True
+
+    error_text = str(exception).lower()
+
+    transient_keywords = [
+        "connection error",
+        "connection reset",
+        "connection aborted",
+        "timeout",
+        "timed out",
+        "temporarily unavailable",
+        "server error",
+        "bad gateway",
+        "gateway timeout",
+        "service unavailable",
+    ]
+
+    return any(keyword in error_text for keyword in transient_keywords)
+
+
 def process_vision_data(
-    INPUT_DIR: str = "extracted_tables", RATE_LIMIT_DELAY: int = 5
+    INPUT_DIR: str = "extracted_tables",
+    RATE_LIMIT_DELAY: int = 2
 ) -> bool:
     """
-    LLM ENGINE: Parses images to JSON. Implements API Key rotation on 429 limits.
+    LLM ENGINE: Parses images to JSON.
+
+    Implements:
+    - Two-key rotation
+    - Groq retry-after based rate-limit handling
+    - Per-key cooldown tracking
+    - Exponential backoff with jitter for transient errors
+
     Returns True on total success, False on hard crash or total token exhaustion.
     """
+
     # 1. API Key Rotation Setup
-    api_keys = [os.getenv("GROQ_API_KEY_1"), os.getenv("GROQ_API_KEY_2")]
-    api_keys = [k for k in api_keys if k]  # Filter out missing keys
+    api_keys = [
+        os.getenv("GROQ_API_KEY_1"),
+        os.getenv("GROQ_API_KEY_2")
+    ]
+
+    api_keys = [k for k in api_keys if k]
 
     if not api_keys:
-        error_msg = "### 🚨 Phase 4 ABORTED: Authentication Error\nNo Groq API keys found in environment variables."
+        error_msg = (
+            "### 🚨 Phase 4 ABORTED: Authentication Error\n"
+            "No Groq API keys found in environment variables."
+        )
+
         print(error_msg)
         send_discord_alert(error_msg)
-        return None  # Changed from False
+
+        return None
 
     current_key_index = 0
-    client = Groq(api_key=api_keys[current_key_index])
+
+    clients = [
+        Groq(api_key=key)
+        for key in api_keys
+    ]
+
+    client = clients[current_key_index]
+
+    # Each key has its own cooldown.
+    key_cooldowns = [0.0 for _ in api_keys]
+
     print(
-        f"[LLM PARSER] Initialized with Key {current_key_index + 1}. Total keys available: {len(api_keys)}"
+        f"[LLM PARSER] Initialized with Key {current_key_index + 1}. "
+        f"Total keys available: {len(api_keys)}"
     )
 
     # 2. State Initialization
     master_data = {}
-
     completed_files = set()
-    image_files = sorted([f for f in os.listdir(INPUT_DIR) if f.endswith(".png")])
+
+    image_files = sorted(
+        [
+            f
+            for f in os.listdir(INPUT_DIR)
+            if f.endswith(".png")
+        ]
+    )
+
     total_files = len(image_files)
 
     if total_files == 0:
-        print("[LLM PARSER] No images found to process. Exiting cleanly.")
+        print(
+            "[LLM PARSER] No images found to process. "
+            "Exiting cleanly."
+        )
         return None
 
     # 3. Execution Loop
     for index, filename in enumerate(image_files, 1):
+
         if filename in completed_files:
-            print(f"[{index}/{total_files}] Skipping {filename}... (Already parsed)")
+            print(
+                f"[{index}/{total_files}] "
+                f"Skipping {filename}... (Already parsed)"
+            )
             continue
 
         image_path = os.path.join(INPUT_DIR, filename)
-        print(f"[{index}/{total_files}] Processing {filename}...")
+
+        print(
+            f"[{index}/{total_files}] "
+            f"Processing {filename}..."
+        )
 
         # Dynamic System Prompt injecting filename as fallback context
         system_prompt = f"""You are a strict data extraction parser. Extract academic syllabus details from the table in the image into a specific JSON object structure.
+FALLBACK CONTEXT: If the image lacks explicit headers for the department or semester, use the filename '{filename}' as secondary context to deduce them. CRITICAL: The visual information inside the image ALWAYS takes absolute priority over the filename. Only use the filename if the image data is ambiguous.
 
-FALLBACK CONTEXT: If the image lacks explicit headers for the department or semester, use the filename '{filename}' as secondary context to deduce them. CRITICAL: The visual information inside the image ALWAYS takes absolute priority over the filename. Only use the filename if the image data is ambiguous. 
-
-CONTEXTUAL FILTERING RULE: If the table represents non-academic schedules (sports, library, fees, hostel), ignore it and return an empty data array: {{"data": []}} 
-
-STATIC MAPPING RULES (CRITICAL): 
-1. PROGRAM: Must be strictly "B.E" or "M.E". 
-2. DEPARTMENT: You must map any abbreviations to these exact strings ONLY: 
-- "CIVIL ENGINEERING"(it may refered as Civil(case incensitive) in image ) 
-- "COMPUTER SCIENCE AND ENGINEERING" (it may refered as cse(case incensitive) in image) 
-- "COMPUTER SCIENCE AND ENGINEERING (AI & ML)"(it may refered as csm(case incensitive) in image) 
-- "MECHANICAL ENGINEERING"(it may refered as mech(case incensitive) in image) 
-- "ELECTRONICS AND COMMUNICATION ENGINEERING" (it may refered as ece(case incensitive) in image) 
-- "ELECTRICAL AND ELECTRONICS ENGINEERING"(it may refered as eee(case incensitive) in image) 
-- "INFORMATION TECHNOLOGY"(it may refered as it(case incensitive) in image) 
-- SPECIALIZATION RULE: If the table is for an Honours degree or specialization (e.g., "Honours Degree in System on Chip Design"), the DEPARTMENT must remain the base department ONLY (e.g., "ELECTRONICS AND COMMUNICATION ENGINEERING"). However, you MUST append the specialization name to the end of EVERY SUBJECT NAME in that table separated by a hyphen. 
-
-3. SEMESTER: MUST be exactly ONE of these strings: "1", "2", "3", "4", "5", "6", "7", or "8". 
-- NO RANGES OR TEXT: You are STRICTLY FORBIDDEN from returning values like "5 to 7", "1-2", "V", or "Sem 1". 
-- SPANNING SEMESTERS: If a table or row spans multiple semesters (e.g., "V to VII" or "5 to 7"), you MUST split this range into individual semesters (e.g., "5", "6", "7"). For EACH semester in that range, create a completely separate, duplicate object inside the "data" array containing that semester's individual integer string and the exact same subjects. Do NOT output ranges like "5 to 7" as the SEMESTER value. 
-- MULTIPLE DISTINCT SEMESTERS: If a table lists different semesters row-by-row, group them and create a separate object in the JSON array for EACH distinct semester. 
-
-4. CREDITS: If blank or '-', output "0". 
-
-OUTPUT SCHEMA FORMAT: You MUST return a JSON object with a single root key called "data". The value of "data" must be an array of objects. 
-{{ 
-  "data": [ 
-    {{ 
-      "PROGRAM": "B.E", 
-      "DEPARTMENT": "CIVIL ENGINEERING", 
-      "SEMESTER": "1", 
-      "SUBJECTS": {{ 
-        "SUBJECT NAME IN UPPERCASE": {{ 
-          "COURSE CODE": "string", 
-          "CREDITS": "string" 
-        }} 
-      }} 
-    }} 
-  ] 
-}} 
-
+CONTEXTUAL FILTERING RULE: If the table represents non-academic schedules (sports, library, fees, hostel), ignore it and return an empty data array: {{"data": []}}
+STATIC MAPPING RULES (CRITICAL):
+1. PROGRAM: Must be strictly "B.E" or "M.E".
+2. DEPARTMENT: You must map any abbreviations to these exact strings ONLY:
+- "CIVIL ENGINEERING"(it may refered as Civil(case incensitive) in image )
+- "COMPUTER SCIENCE AND ENGINEERING" (it may refered as cse(case incensitive) in image)
+- "COMPUTER SCIENCE AND ENGINEERING (AI & ML)"(it may refered as csm(case incensitive) in image)
+- "MECHANICAL ENGINEERING"(it may refered as mech(case incensitive) in image)
+- "ELECTRONICS AND COMMUNICATION ENGINEERING" (it may refered as ece(case incensitive) in image)
+- "ELECTRICAL AND ELECTRONICS ENGINEERING"(it may refered as eee(case incensitive) in image)
+- "INFORMATION TECHNOLOGY"(it may refered as it(case incensitive) in image)
+- SPECIALIZATION RULE: If the table is for an Honours degree or specialization (e.g., "Honours Degree in System on Chip Design"), the DEPARTMENT must remain the base department ONLY (e.g., "ELECTRONICS AND COMMUNICATION ENGINEERING"). However, you MUST append the specialization name to the end of EVERY SUBJECT NAME in that table separated by a hyphen.
+3. SEMESTER: MUST be exactly ONE of these strings: "1", "2", "3", "4", "5", "6", "7", or "8".
+- NO RANGES OR TEXT: You are STRICTLY FORBIDDEN from returning values like "5 to 7", "1-2", "V", or "Sem 1".
+- SPANNING SEMESTERS: If a table or row spans multiple semesters (e.g., "V to VII" or "5 to 7"), you MUST split this range into individual semesters (e.g., "5", "6", "7"). For EACH semester in that range, create a completely separate, duplicate object inside the "data" array containing that semester's individual integer string and the exact same subjects. Do NOT output ranges like "5 to 7" as the SEMESTER value.
+- MULTIPLE DISTINCT SEMESTERS: If a table lists different semesters row-by-row, group them and create a separate object in the JSON array for EACH distinct semester.
+4. CREDITS: If blank or '-', output "0".
+OUTPUT SCHEMA FORMAT: You MUST return a JSON object with a single root key called "data". The value of "data" must be an array of objects.
+{{
+  "data": [
+    {{
+      "PROGRAM": "B.E",
+      "DEPARTMENT": "CIVIL ENGINEERING",
+      "SEMESTER": "1",
+      "SUBJECTS": {{
+        "SUBJECT NAME IN UPPERCASE": {{
+          "COURSE CODE": "string",
+          "CREDITS": "string"
+        }}
+      }}
+    }}
+  ]
+}}
 Return ONLY valid JSON matching this exact schema. No markdown formatting blocks, no explanations."""
 
         retry_count = 0
         max_retries = 3
+
         processing_complete = False
 
         while not processing_complete:
+
             try:
+
+                # If the currently selected key is cooling down,
+                # try another available key first.
+                now = time.monotonic()
+
+                if now < key_cooldowns[current_key_index]:
+
+                    available_keys = [
+                        i
+                        for i, cooldown in enumerate(key_cooldowns)
+                        if cooldown <= now
+                    ]
+
+                    if available_keys:
+
+                        # Prefer the next available key.
+                        current_key_index = available_keys[0]
+                        client = clients[current_key_index]
+
+                    else:
+
+                        # Both keys are cooling down.
+                        earliest_index = min(
+                            range(len(key_cooldowns)),
+                            key=lambda i: key_cooldowns[i]
+                        )
+
+                        wait_time = max(
+                            0,
+                            key_cooldowns[earliest_index] - now
+                        )
+
+                        print(
+                            f"  -> [RATE LIMIT] All keys are cooling down. "
+                            f"Waiting {wait_time:.2f}s..."
+                        )
+
+                        time.sleep(wait_time)
+
+                        current_key_index = earliest_index
+                        client = clients[current_key_index]
+
                 base64_image = encode_image(image_path)
 
-                # AFTER
                 response = client.chat.completions.create(
                     model="qwen/qwen3.8-27b",
                     messages=[
                         {
                             "role": "user",
                             "content": [
-                                {"type": "text", "text": system_prompt},
+                                {
+                                    "type": "text",
+                                    "text": system_prompt
+                                },
                                 {
                                     "type": "image_url",
                                     "image_url": {
-                                        "url": f"data:image/png;base64,{base64_image}"
+                                        "url": (
+                                            f"data:image/png;base64,"
+                                            f"{base64_image}"
+                                        )
                                     },
                                 },
                             ],
                         }
                     ],
-                    temperature=0.0,  # keep deterministic extraction behavior
+                    temperature=0.0,
                     max_completion_tokens=3048,
                     top_p=1,
                     stream=False,
                     stop=None,
+                    reasoning_effort="none",
                 )
 
-                raw_output = response.choices[0].message.content.strip()
+                raw_output = (
+                    response.choices[0]
+                    .message.content
+                    .strip()
+                )
+
                 extracted_json = json.loads(raw_output)
 
                 # --- DATA NORMALIZATION PEELER ---
                 data_list = []
+
                 if isinstance(extracted_json, dict):
-                    if "data" in extracted_json and isinstance(
-                        extracted_json["data"], list
+
+                    if (
+                        "data" in extracted_json
+                        and isinstance(
+                            extracted_json["data"],
+                            list
+                        )
                     ):
                         data_list = extracted_json["data"]
+
                     else:
+
                         for key, value in extracted_json.items():
+
                             if isinstance(value, list):
                                 data_list = value
                                 break
 
                 # --- SCHEMA VALIDATION ---
                 if not validate_structure(data_list):
+
                     error_msg = (
-                        f"### 🚨 Phase 4 ABORTED: Structural Hallucination\n"
+                        "### 🚨 Phase 4 ABORTED: "
+                        "Structural Hallucination\n"
                         f"- **File:** `{filename}`\n"
-                        f"- **Details:** Model returned invalid JSON schema. Execution halted."
+                        "- **Details:** Model returned invalid "
+                        "JSON schema. Execution halted."
                     )
+
                     print(error_msg)
                     send_discord_alert(error_msg)
+
                     return False
 
                 # --- DATA INJECTION ---
-                # --- DATA INJECTION ---
                 if data_list:
+
                     for block in data_list:
+
                         prog = block["PROGRAM"]
                         dept = block["DEPARTMENT"]
                         sem = block["SEMESTER"]
@@ -195,57 +489,233 @@ Return ONLY valid JSON matching this exact schema. No markdown formatting blocks
 
                         if prog not in master_data:
                             master_data[prog] = {}
+
                         if dept not in master_data[prog]:
                             master_data[prog][dept] = {}
+
                         if sem not in master_data[prog][dept]:
                             master_data[prog][dept][sem] = {}
 
                         for sub_name, sub_details in subs.items():
-                            master_data[prog][dept][sem][sub_name] = sub_details
+
+                            master_data[prog][dept][sem][
+                                sub_name
+                            ] = sub_details
 
                 completed_files.add(filename)
                 processing_complete = True
-                print(f"  -> Success. Data merged in memory.")
 
-                time.sleep(RATE_LIMIT_DELAY)
+                # Successful request means transient error
+                # counter can be reset.
+                retry_count = 0
+
+                print(
+                    f"  -> Success. Data merged in memory."
+                )
+
+                # Small normal pacing delay.
+                # 429 responses use Groq's actual retry timing.
+                if RATE_LIMIT_DELAY > 0:
+                    time.sleep(RATE_LIMIT_DELAY)
 
             except Exception as e:
+
                 error_str = str(e)
 
-                # --- 429 RATE LIMIT HANDLING & ROTATION ---
-                if "429" in error_str:
-                    print(
-                        f"  -> [WARNING] Rate limit (429) hit on Key {current_key_index + 1}."
+                # ==================================================
+                # 429 RATE LIMIT HANDLING + KEY ROTATION
+                # ==================================================
+                if _is_rate_limit_error(e):
+
+                    retry_delay = _get_retry_delay(e)
+
+                    reset_delay = _get_reset_timestamp(e)
+
+                    # Use the more useful reset information when
+                    # available.
+                    if reset_delay is not None:
+                        retry_delay = max(
+                            retry_delay,
+                            reset_delay
+                        )
+
+                    # Small jitter prevents synchronized retries.
+                    jitter = random.uniform(0.5, 1.5)
+
+                    cooldown = retry_delay + jitter
+
+                    key_cooldowns[current_key_index] = (
+                        time.monotonic() + cooldown
                     )
 
-                    # Attempt Rotation
-                    if current_key_index < len(api_keys) - 1:
-                        current_key_index += 1
-                        print(
-                            f"  -> [ROTATION] Switching to Key {current_key_index + 1}..."
-                        )
-                        client = Groq(api_key=api_keys[current_key_index])
-                        time.sleep(5)
-                        continue
-                    else:
-                        error_msg = "### 🚨 Phase 4 ABORTED: Exhausted API Limits\nAll provided Groq keys hit 429 limits. Process halted. Progress has been saved."
-                        print(error_msg)
-                        send_discord_alert(error_msg)
-                        return False
+                    print(
+                        f"  -> [WARNING] Rate limit (429) "
+                        f"hit on Key {current_key_index + 1}."
+                    )
 
-                # --- STANDARD ERROR RETRY LOGIC ---
-                else:
-                    retry_count += 1
-                    if retry_count <= max_retries:
+                    print(
+                        f"  -> [RATE LIMIT] Key "
+                        f"{current_key_index + 1} cooling down "
+                        f"for {cooldown:.2f}s."
+                    )
+
+                    # Find another key that is immediately usable.
+                    now = time.monotonic()
+
+                    available_keys = [
+                        i
+                        for i, cooldown_until
+                        in enumerate(key_cooldowns)
+                        if cooldown_until <= now
+                        and i != current_key_index
+                    ]
+
+                    if available_keys:
+
+                        next_key_index = available_keys[0]
+
+                        current_key_index = next_key_index
+                        client = clients[current_key_index]
+
                         print(
-                            f"  -> ERROR on {filename}: {e}\n  -> Retrying in 5 seconds..."
+                            f"  -> [ROTATION] Switching to "
+                            f"Key {current_key_index + 1}..."
                         )
-                        time.sleep(5)
-                    else:
-                        error_msg = f"### 🚨 Phase 4 ABORTED: API Exception\nPersistent error on `{filename}` after {max_retries} retries: `{error_str}`"
-                        print(error_msg)
-                        send_discord_alert(error_msg)
-                        return False
+
+                        continue
+
+                    # No other key is currently available.
+                    # Wait for the earliest key.
+                    earliest_index = min(
+                        range(len(key_cooldowns)),
+                        key=lambda i: key_cooldowns[i]
+                    )
+
+                    wait_time = max(
+                        0,
+                        key_cooldowns[earliest_index]
+                        - time.monotonic()
+                    )
+
+                    print(
+                        f"  -> [RATE LIMIT] No other key "
+                        f"available. Waiting {wait_time:.2f}s..."
+                    )
+
+                    time.sleep(wait_time)
+
+                    current_key_index = earliest_index
+                    client = clients[current_key_index]
+
+                    print(
+                        f"  -> [ROTATION] Resuming with "
+                        f"Key {current_key_index + 1}..."
+                    )
+
+                    continue
+
+                # ==================================================
+                # TRANSIENT CONNECTION / SERVER ERROR
+                # ==================================================
+                if _is_transient_error(e):
+
+                    retry_count += 1
+
+                    if retry_count <= max_retries:
+
+                        # Exponential backoff:
+                        # 2s, 4s, 8s
+                        backoff = min(
+                            2 ** retry_count,
+                            30
+                        )
+
+                        jitter = random.uniform(
+                            0.5,
+                            1.5
+                        )
+
+                        delay = backoff + jitter
+
+                        print(
+                            f"  -> TRANSIENT ERROR on {filename}: "
+                            f"{e}"
+                        )
+
+                        print(
+                            f"  -> Retrying in "
+                            f"{delay:.2f} seconds..."
+                        )
+
+                        time.sleep(delay)
+
+                        # If another key exists, rotate after
+                        # repeated transient failure.
+                        if (
+                            len(api_keys) > 1
+                            and retry_count >= 2
+                        ):
+
+                            current_key_index = (
+                                current_key_index + 1
+                            ) % len(api_keys)
+
+                            client = clients[
+                                current_key_index
+                            ]
+
+                            print(
+                                f"  -> [ROTATION] "
+                                f"Switching to Key "
+                                f"{current_key_index + 1} "
+                                f"after transient failures..."
+                            )
+
+                        continue
+
+                # ==================================================
+                # STANDARD ERROR RETRY LOGIC
+                # ==================================================
+                retry_count += 1
+
+                if retry_count <= max_retries:
+
+                    backoff = min(
+                        2 ** retry_count,
+                        30
+                    )
+
+                    jitter = random.uniform(
+                        0.5,
+                        1.5
+                    )
+
+                    delay = backoff + jitter
+
+                    print(
+                        f"  -> ERROR on {filename}: {e}"
+                    )
+
+                    print(
+                        f"  -> Retrying in "
+                        f"{delay:.2f} seconds..."
+                    )
+
+                    time.sleep(delay)
+
+                else:
+
+                    error_msg = (
+                        "### 🚨 Phase 4 ABORTED: API Exception\n"
+                        f"Persistent error on `{filename}` "
+                        f"after {max_retries} retries: "
+                        f"`{error_str}`"
+                    )
+
+                    print(error_msg)
+                    send_discord_alert(error_msg)
+
+                    return False
 
     # 4. Final Success Alert
     success_msg = (
@@ -253,8 +723,10 @@ Return ONLY valid JSON matching this exact schema. No markdown formatting blocks
         f"- **Images Parsed:** {total_files}\n"
         f"- **Status:** Proceeding to final verification."
     )
+
     print(success_msg)
     send_discord_alert(success_msg)
+
     return master_data
 
 
